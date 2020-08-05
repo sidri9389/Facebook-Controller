@@ -6,6 +6,8 @@ import sys
 import RPi.GPIO as GPIO    
 import sched
 
+scheduler = sched.scheduler(time.time, time.sleep)
+
 
 #Lights Relay
 lights_relay = 2
@@ -14,8 +16,9 @@ GPIO.setmode(GPIO.BCM)
 GPIO.setwarnings(False)    # Ignore warning for now
 GPIO.setup(lights_relay, GPIO.OUT, initial=GPIO.HIGH)   # Set pin 8 to be an output pin and set initial value to low (off)
 
-def turn_on():
+def turn_on(thread):
 	print('Turned on:', time.time())
+	thread.send_text("Lights turned on")
 
 	f = open(log_file,"w")
 	f.write("Turned lighs on at " + str(time.time()))
@@ -23,8 +26,10 @@ def turn_on():
 
 	GPIO.output(lights_relay, GPIO.LOW)
 
-def turn_off():
+def turn_off(thread):
 	print('Turned off:', time.time())
+	thread.send_text("Lights turned off")
+
 	f = open(log_file,"w")
 	f.write("Turned lighs off at " + str(time.time()))
 	f.close()
@@ -51,7 +56,7 @@ commands = {'turn on' : 1, 'turn off' : 0, 'check' : 2, 'report' : 3, 'clear com
 alt_commands = {'start' : 1, 'stop' : 0, 'delete command' : 4}
 
 #principal controlled devices
-devices = {'lights' : 1}
+devices = {'Lights' : 1}
 
 #Alternative ways of naming controlled devices
 alt_devices = {'illumination' : 1}
@@ -116,11 +121,13 @@ for event in listener.listen():
 				for key in commands:
 					if all(item in split_message for item in key.split()):
 						command = commands.get(key)
+						comm_key = key
 
 				device = -1
-				for key in devices:
-					if all(item in split_message for item in key.split()):
+				for ke in devices:
+					if all(item in split_message for item in key.lower().split()):
 						device = devices.get(key)
+						dev_key = key
 
 
 				#Timing of command
@@ -157,18 +164,15 @@ for event in listener.listen():
 					else:
 						pass
 
-
-				#Define task scheduler
-				scheduler = sched.scheduler(time.time, time.sleep)
-
+				
 				if command != -1 and device != -1:
-					print('Command: ', command)
-					print('Device: ', device)
+					
+					thread.send_text(str(dev_key) + ' to ' + str(comm_key) + ' in ' + str(start_delay) + ' seconds for ' + str(run_time) + ' seconds.')
 
-					print('To start in ',start_delay, ' sec. and finish in ', (start_delay + run_time), ' sec.')
-
-					scheduler.enter(start_delay,1, turn_on)
-					scheduler.enter((start_delay + run_time), 1, turn_off)
+					#Define task scheduler
+					
+					scheduler.enter(start_delay, 1, turn_on, (thread,))
+					scheduler.enter(start_delay + run_time, 1, turn_off, (thread,))
 
 					scheduler.run()
 
@@ -179,7 +183,7 @@ for event in listener.listen():
 						scheduler.cancel(event)
 
 				if command == 3:
-					print('Deelet all future events')
+					print('Reporting Log file')
 					log = open(log_file, 'r').read()
 					thread.send_text(log)
 	
