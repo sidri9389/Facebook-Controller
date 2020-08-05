@@ -36,7 +36,7 @@ def turn_off():
 email = "tdrvlad@gmail.com"
 password = "12345678901234567890"
 
-command_password = "please"
+command_password = "****"
 
 #Definitions
 
@@ -67,7 +67,8 @@ listener = fbchat.Listener(session=session, chat_on=False, foreground=False)
 
 verified_users = []
 
-
+hello_message = 'Hello!'
+passwd_req = 'Please, type the password'
 for event in listener.listen():
 	if isinstance(event, fbchat.MessageEvent):
 		
@@ -77,9 +78,10 @@ for event in listener.listen():
 
 			if event.author not in verified_users:
 
-				thread.send_text("Hello")
+				thread.send_text(hello_message)
+				thread.send_emoji('😄', size=fbchat.EmojiSize.LARGE)
 				time.sleep(1.5)
-				thread.send_text("Type Password")
+				thread.send_text(passwd_req)
 
 				time.sleep(7)
 
@@ -87,16 +89,17 @@ for event in listener.listen():
 
 				for response in responses:
 
-					print(response.text)
-					if command_password == response.text:
-							thread.send_text("Access Granted")
-							verified_users.append(event.author)
+					if response.text != hello_message and response.text != passwd_req:	
+						response.react('😍')
+						if command_password == response.text:
+								thread.send_text("Access Granted")
+								verified_users.append(event.author)
 
-							f = open(log_file,"w")
-							f.write("Added user " + str(event.author.id))
-							f.close()
-					else:
-							thread.send_text("Acces Denied")
+								f = open(log_file,"w")
+								f.write("Added user " + str(event.author.id))
+								f.close()
+						else:
+								thread.send_text("Acces Denied")
 
 			else:
 
@@ -162,10 +165,10 @@ for event in listener.listen():
 					print('Command: ', command)
 					print('Device: ', device)
 
-					print('To start in ',start_delay / 60, ' sec. and finish in ', (start_delay + run_time) / 60, ' sec.')
+					print('To start in ',start_delay, ' sec. and finish in ', (start_delay + run_time), ' sec.')
 
-					scheduler.enter(start_delay / 60,1, turn_on)
-					scheduler.enter((start_delay + run_time) / 60, 1, turn_off)
+					scheduler.enter(start_delay,1, turn_on)
+					scheduler.enter((start_delay + run_time), 1, turn_off)
 
 					scheduler.run()
 
