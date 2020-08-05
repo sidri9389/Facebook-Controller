@@ -3,6 +3,11 @@
 import fbchat
 import time
 
+import RPi.GPIO as GPIO    # Import Raspberry Pi GPIO library
+GPIO.setmode(GPIO.BCM)
+GPIO.setwarnings(False)    # Ignore warning for now
+GPIO.setup(2, GPIO.OUT, initial=GPIO.HIGH)   # Set pin 8 to be an output pin and set initial value to low (off)
+
 
 email = "tdrvlad@gmail.com"
 password = "12345678901234567890"
@@ -16,8 +21,14 @@ listener = fbchat.Listener(session=session, chat_on=False, foreground=False)
 
 verified_users = []
 
-commands = {"Porneste" : 1, "Opreste" : 0, "Verifica" : 2}
-devices = {""}
+on_command = 'Turn on Lights'
+off_command = 'Turn off lights'
+
+on_command.lower().split()
+off_command.lower().split()
+
+print(on_command)
+
 
 
 for event in listener.listen():
@@ -54,10 +65,19 @@ for event in listener.listen():
 
 				message = event.message.text
 				
-				thread.send_text(message)
-				print(message)
-				#thread.send_text("Welcome, how can I help?")
-				#time.sleep(1.5)
+				message.lower().split()
+
+				if all(item in on_command for item in message) or all(item in message for item in on_command):
+ 			
+					thread.send_text('Turning on lights')
+					GPIO.output(2, GPIO.LOW)
+				
+				elif all(item in off_command for item in message) or all(item in message for item in off_command):
+					thread.send_text('Turning off lights')
+					GPIO.output(2, GPIO.HIGH)
+				else:
+					thread.send_text('Waiting for command')
+					time.sleep(15)
 
 
 
